@@ -105,3 +105,10 @@ void fragment() {
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	return mat
+
+
+static func fx_material() -> ShaderMaterial:
+	var mat := chroma_material()
+	mat.set_shader_parameter("luma_cut", 0.06)
+	mat.set_shader_parameter("sat_cut", 0.05)
+	return mat

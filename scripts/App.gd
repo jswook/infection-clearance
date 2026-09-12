@@ -304,7 +304,7 @@ func _build_mission() -> void:
 	bar_row.add_theme_constant_override("separation", 12)
 	bar.add_child(bar_row)
 	upgrade_blink = TextureRect.new()
-	upgrade_blink.custom_minimum_size = Vector2(56, 48)
+	upgrade_blink.custom_minimum_size = Vector2(80, 64)
 	upgrade_blink.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	upgrade_blink.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	upgrade_blink.texture = P0Art.upgrade_blink()

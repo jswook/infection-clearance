@@ -7,6 +7,7 @@ var muzzle: float = 0.0
 var shake: float = 0.0
 
 var _chroma: ShaderMaterial
+var _fx_mat: ShaderMaterial
 var _enemy_sprites: Dictionary = {}
 var _seen_alive: Dictionary = {}
 var _fx: Array[Dictionary] = []
@@ -15,6 +16,7 @@ var _layer: Node2D
 
 func _ready() -> void:
 	_chroma = P0Art.chroma_material()
+	_fx_mat = P0Art.fx_material()
 	_layer = Node2D.new()
 	_layer.name = "P0Sprites"
 	add_child(_layer)
@@ -178,10 +180,10 @@ func _place_enemy_sprite(e: Dictionary, ox: float, H: float) -> void:
 		return
 	spr.visible = true
 	spr.region_rect = region
-	var target_h: float = float(e.radius) * 5.6
+	var target_h: float = float(e.radius) * 6.8
 	var s: float = target_h / maxf(region.size.y, 1.0)
 	if e.kind == "boss":
-		s *= 1.15
+		s *= 1.2
 	spr.scale = Vector2(s, s)
 	var feet := _enemy_feet(e, ox, H)
 	spr.position = Vector2(feet.x - region.size.x * 0.5 * s, feet.y - region.size.y * s)
@@ -197,8 +199,8 @@ func _free_enemy_sprite(eid: int) -> void:
 
 func _spawn_kill_scrap_fx(x: float, H: float) -> void:
 	var y := H - 150.0
-	_push_fx(P0Art.fx_kill(), Vector2(x, y), 0.42, 0.55, Vector2(0, -28))
-	_push_fx(P0Art.fx_scrap(), Vector2(x + 28.0, y - 18.0), 0.7, 0.85, Vector2(8, -46))
+	_push_fx(P0Art.fx_kill(), Vector2(x, y - 8.0), 0.22, 0.4, Vector2(0, -20))
+	_push_fx(P0Art.fx_scrap(), Vector2(x + 22.0, y - 36.0), 0.2, 0.55, Vector2(6, -40))
 
 
 func _push_fx(tex: Texture2D, pos: Vector2, scale: float, life: float, drift: Vector2) -> void:
@@ -209,7 +211,7 @@ func _push_fx(tex: Texture2D, pos: Vector2, scale: float, life: float, drift: Ve
 	spr.centered = true
 	spr.scale = Vector2(scale, scale)
 	spr.position = pos
-	spr.material = _chroma
+	spr.material = _fx_mat
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_layer.add_child(spr)
 	_fx.append({
