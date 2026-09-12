@@ -26,6 +26,20 @@ Godot 4.x에서 이 저장소를 열고 **F5**. 엔트리 씬이 타이틀(작�
 
 조작: Enter 시작, Space 사격, U 업글, A 자동(업글1 이후), 철수/재도전.
 
+## P0 아트 (wired)
+
+`art/.gdignore` 없음. Godot이 PNG를 `Texture2D`로 임포트한다. HUD/아레나는 `TextureRect`·`Sprite2D`로 연결한다. 전투 로직·UX-4 순서(업글1 → 선택 → 목표 카드 → 자동)는 그대로다.
+
+| 경로 | 연결 |
+| --- | --- |
+| `art/ui/ui_upgrade_blink.png` | 업글 버튼 옆 `TextureRect` 점멸 |
+| `art/ui/ui_boost_once.png` | 첫 실패 「이번만」 오버레이 카드 |
+| `art/ui/ui_goal_exit.png` | 업글1 이후 목표(비상구) 카드 |
+| `art/enemies/enemies_z1_b1.png` | Z1–Z6 · B1 `Sprite2D` 실루엣 |
+| `art/fx/fx_kill_scrap.png` | 처치 버스트 + 스크랩 획득 FX |
+
+목록: `art/README.md`. 아틀라스 좌표는 `scripts/P0Art.gd`.
+
 ## 헤드리스 검증
 
 ```bash
