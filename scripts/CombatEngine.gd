@@ -10,6 +10,8 @@ signal player_died
 signal run_cleared
 signal upgrade_resolved(kind: int)
 signal needs_armory_choice
+signal needs_goal_card
+signal auto_unlocked_changed
 signal zone_changed(index: int)
 signal wave_changed(index: int, count: int)
 
@@ -38,6 +40,8 @@ var shots: int = 0
 var enemies: Array[Dictionary] = []
 var player: Dictionary = {}
 var pending_choice: bool = false
+var pending_goal_card: bool = false
+var goal_card_acked: bool = false
 var just_failed: bool = false
 var just_cleared: bool = false
 var grace: float = 0.0
@@ -65,6 +69,8 @@ func start_run(p_supply: int, p_ibeonman: bool) -> void:
 	shots = 0
 	enemies.clear()
 	pending_choice = false
+	pending_goal_card = false
+	goal_card_acked = false
 	just_failed = false
 	just_cleared = false
 	grace = 2.0
@@ -122,13 +128,28 @@ func choose_upgrade(kind: int) -> bool:
 	upgrade_kind = kind
 	upgrade_bought = true
 	pending_choice = false
-	auto_unlocked = true
-	auto_on = true
 	player.ammo = magazine()
 	var label := "화력" if kind == UPGRADE_FIREPOWER else "탄약효율"
 	_push_toast("업글1 장착: %s  — 화력 %.1f / 탄소모 %.2f" % [label, damage(), ammo_cost()])
 	upgrade_resolved.emit(kind)
+	# UX-4: 자동은 목표카드 확인 뒤에만. 업글1/무기고 선택 직후 잠금 유지.
+	pending_goal_card = true
 	if phase == "choice":
+		phase = "goal"
+	needs_goal_card.emit()
+	return true
+
+
+func acknowledge_goal_card() -> bool:
+	if not upgrade_bought or goal_card_acked:
+		return goal_card_acked
+	pending_goal_card = false
+	goal_card_acked = true
+	auto_unlocked = true
+	auto_on = true
+	auto_unlocked_changed.emit()
+	_push_toast("목표 확인  ·  자동 해금")
+	if phase == "goal" or phase == "choice":
 		_advance_after_choice()
 	return true
 

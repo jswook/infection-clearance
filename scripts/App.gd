@@ -50,6 +50,7 @@ func _ready() -> void:
 	engine.run_cleared.connect(_on_clear)
 	engine.upgrade_resolved.connect(_on_upgrade)
 	engine.needs_armory_choice.connect(_show_choice)
+	engine.needs_goal_card.connect(_show_goal_card)
 	engine.zone_changed.connect(func(_i: int) -> void: _sync_hud())
 	_show_title()
 
@@ -459,9 +460,20 @@ func _show_choice() -> void:
 
 func _pick(kind: int) -> void:
 	if engine.choose_upgrade(kind):
-		overlay.visible = false
 		choice_box.visible = false
+		_show_goal_card()
 		_sync_hud()
+
+
+func _show_goal_card() -> void:
+	overlay_mode = "goal"
+	overlay.visible = true
+	choice_box.visible = false
+	overlay_primary.visible = true
+	overlay_primary.text = "확인"
+	overlay_secondary.visible = false
+	overlay_title.text = "작전 목표"
+	overlay_body.text = "S1 %s\n로비 → 복도 → 무기고 → 주차장 → 비상구 B1\n한 걸음에 보스로 갈 수 없다.\n목표: %s" % [Balance.ZONE_NAME, Balance.FINAL_GOAL]
 
 
 func _toggle_auto() -> void:
@@ -530,6 +542,10 @@ func _on_overlay_primary() -> void:
 		overlay.visible = false
 		engine.start_run(MetaSave.supply_level, true)
 		_on_toast("「이번만」 소모  ·  긴급 보급 적용 후 재도전")
+		_sync_hud()
+	elif overlay_mode == "goal":
+		engine.acknowledge_goal_card()
+		overlay.visible = false
 		_sync_hud()
 	elif overlay_mode == "clear":
 		_show_title()

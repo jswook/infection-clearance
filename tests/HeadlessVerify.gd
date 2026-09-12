@@ -16,6 +16,7 @@ func _ready() -> void:
 	_check_shield()
 	_check_meta()
 	_check_zone_order()
+	_check_onboarding_auto_order()
 	_check_simulated_clear()
 	if failed == 0:
 		print("HeadlessVerify: ALL PASSED")
@@ -74,7 +75,7 @@ func _check_upgrade_exclusive() -> void:
 	_assert(is_equal_approx(dmg, Bal.BASE_DAMAGE * Bal.UPGRADE1_FIREPOWER_MULT), "firepower mult applied")
 	_assert(not e.choose_upgrade(CombatEngineScript.UPGRADE_AMMO_EFF), "cannot pick second upgrade")
 	_assert(e.upgrade_kind == CombatEngineScript.UPGRADE_FIREPOWER, "exclusive firepower")
-	_assert(e.auto_unlocked and e.auto_on, "auto unlocks after upgrade1")
+	_assert(not e.auto_unlocked and not e.auto_on, "auto stays locked after upgrade1")
 
 	var e2 := CombatEngineScript.new()
 	e2.start_run(0, false)
@@ -120,6 +121,24 @@ func _check_zone_order() -> void:
 	_assert(e.zone().id != "b1", "second zone is not boss")
 
 
+func _check_onboarding_auto_order() -> void:
+	var e := CombatEngineScript.new()
+	e.start_run(0, false)
+	_assert(not e.acknowledge_goal_card(), "goal card cannot ack before upgrade1")
+	_assert(not e.auto_unlocked, "auto locked at run start")
+	e.scrap = Bal.UPGRADE1_SCRAP_COST
+	_assert(e.choose_upgrade(CombatEngineScript.UPGRADE_FIREPOWER), "upgrade1 / armory choice")
+	_assert(e.upgrade_bought, "upgrade1 applied")
+	_assert(not e.auto_unlocked and not e.auto_on, "UX-4: auto locked after upgrade1/choice")
+	e.set_auto(true)
+	_assert(not e.auto_on, "set_auto ignored before goal card")
+	_assert(e.pending_goal_card, "goal card pending after choice")
+	_assert(e.acknowledge_goal_card(), "stage goal card confirmed")
+	_assert(e.goal_card_acked, "goal card acked")
+	_assert(e.auto_unlocked and e.auto_on, "auto unlocks only after goal card")
+	_assert(not e.pending_goal_card, "goal card no longer pending")
+
+
 func _simulate(e: RefCounted, seconds: float) -> void:
 	var t := 0.0
 	var step := 0.05
@@ -129,6 +148,8 @@ func _simulate(e: RefCounted, seconds: float) -> void:
 				e.choose_upgrade(CombatEngineScript.UPGRADE_FIREPOWER)
 			else:
 				break
+		if e.pending_goal_card or e.phase == "goal":
+			e.acknowledge_goal_card()
 		e.process(step)
 		e.tap_fire()
 		if e.can_afford_upgrade():
