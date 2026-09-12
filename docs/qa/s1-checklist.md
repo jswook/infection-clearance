@@ -1,8 +1,11 @@
 # S1 QA 체크리스트 — 봉쇄구역: 제로 / 감염 클리어런스
 
-깨진 항목만 이슈로 남긴다. 수치 기준은 `Balance.gd`.
+깨진 항목만 이슈로 남긴다. 수치 기준은 `Balance.gd` (`feat/core-loop`에 있으며 #4가 develop에 머지되기 전까지 그쪽을 본다. 머지 후: `autoload/Balance.gd`).
 
 스테이지: 로비 → 복도 → 무기고 → 주차장 → 비상구 B1
+
+## 기획 게이트 (A–C)
+플레이 판정은 `docs/planning/gates.md` (PR https://github.com/jswook/infection-clearance/pull/9 / issue https://github.com/jswook/infection-clearance/issues/8)의 A(감정)·B(밸런스)·C(결핍→과금) 번호를 함께 찍는다. 이슈 라벨: planning / ux / qa.
 
 ## 기획 1–8
 1. O1: 1~5초에 처치·피드백 발생
