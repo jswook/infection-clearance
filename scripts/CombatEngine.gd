@@ -10,6 +10,8 @@ signal player_died
 signal run_cleared
 signal upgrade_resolved(kind: int)
 signal needs_armory_choice
+signal needs_goal_card
+signal auto_unlocked_changed
 signal zone_changed(index: int)
 signal wave_changed(index: int, count: int)
 
@@ -38,8 +40,12 @@ var shots: int = 0
 var enemies: Array[Dictionary] = []
 var player: Dictionary = {}
 var pending_choice: bool = false
+var pending_goal_card: bool = false
+var goal_card_acked: bool = false
 var just_failed: bool = false
 var just_cleared: bool = false
+var grace: float = 0.0
+var toast_log: PackedStringArray = PackedStringArray()
 
 
 func start_run(p_supply: int, p_ibeonman: bool) -> void:
@@ -63,25 +69,30 @@ func start_run(p_supply: int, p_ibeonman: bool) -> void:
 	shots = 0
 	enemies.clear()
 	pending_choice = false
+	pending_goal_card = false
+	goal_card_acked = false
 	just_failed = false
 	just_cleared = false
+	grace = 2.0
+	toast_log = PackedStringArray()
 	_reset_player()
 	_spawn_current_wave()
 	zone_changed.emit(zone_index)
 	wave_changed.emit(wave_index, _wave_count())
-	toast.emit("%s — %s 진입" % [Bal.MISSION_NAME, zone_name()])
+	_push_toast("%s — %s 진입" % [Bal.MISSION_NAME, zone_name()])
 
 
 func process(delta: float) -> void:
 	if phase != "combat":
 		return
 	elapsed += delta
+	grace = maxf(0.0, grace - delta)
 	tap_cd = maxf(0.0, tap_cd - delta)
 	if reload_left > 0.0:
 		reload_left = maxf(0.0, reload_left - delta)
 		if reload_left == 0.0:
 			player.ammo = magazine()
-			toast.emit("재장전 완료")
+			_push_toast("재장전 완료")
 	tick_accum += delta
 	while tick_accum >= Bal.TICK_INTERVAL and phase == "combat":
 		tick_accum -= Bal.TICK_INTERVAL
@@ -117,13 +128,28 @@ func choose_upgrade(kind: int) -> bool:
 	upgrade_kind = kind
 	upgrade_bought = true
 	pending_choice = false
-	auto_unlocked = true
-	auto_on = true
 	player.ammo = magazine()
 	var label := "화력" if kind == UPGRADE_FIREPOWER else "탄약효율"
-	toast.emit("업글1 장착: %s  — 화력 %.1f / 탄소모 %.2f" % [label, damage(), ammo_cost()])
+	_push_toast("업글1 장착: %s  — 화력 %.1f / 탄소모 %.2f" % [label, damage(), ammo_cost()])
 	upgrade_resolved.emit(kind)
+	# UX-4: 자동은 목표카드 확인 뒤에만. 업글1/무기고 선택 직후 잠금 유지.
+	pending_goal_card = true
 	if phase == "choice":
+		phase = "goal"
+	needs_goal_card.emit()
+	return true
+
+
+func acknowledge_goal_card() -> bool:
+	if not upgrade_bought or goal_card_acked:
+		return goal_card_acked
+	pending_goal_card = false
+	goal_card_acked = true
+	auto_unlocked = true
+	auto_on = true
+	auto_unlocked_changed.emit()
+	_push_toast("목표 확인  ·  자동 해금")
+	if phase == "goal" or phase == "choice":
 		_advance_after_choice()
 	return true
 
@@ -203,22 +229,23 @@ func _spawn_current_wave() -> void:
 		})
 		next_id += 1
 	wave_changed.emit(wave_index, waves.size())
-	toast.emit("%s · 웨이브 %d/%d" % [zone_name(), wave_index + 1, waves.size()])
+	_push_toast("%s · 웨이브 %d/%d" % [zone_name(), wave_index + 1, waves.size()])
 
 
 func _combat_tick() -> void:
 	ticks += 1
 	if auto_on and auto_unlocked:
 		_fire(false)
+	var front := _closest_living()
 	for e in enemies:
 		if not e.alive:
 			continue
 		var dist: float = e.x - player.x
 		if dist > e.melee:
 			e.x = maxf(player.x + e.melee * 0.35, e.x - e.speed * Bal.TICK_INTERVAL)
-		else:
+		elif grace <= 0.0 and not front.is_empty() and int(e.id) == int(front.id):
 			player.hp -= e.dmg
-			toast.emit("피격 -%.0f" % e.dmg)
+			_push_toast("피격 -%.0f" % e.dmg)
 			if player.hp <= 0.0:
 				player.hp = 0.0
 				_fail()
@@ -234,7 +261,7 @@ func _fire(is_tap: bool) -> bool:
 	if player.ammo < cost:
 		reload_left = Bal.RELOAD_SEC
 		if is_tap:
-			toast.emit("탄약 소진 — 재장전")
+			_push_toast("탄약 소진 — 재장전")
 		return false
 	var target := _closest_living()
 	if target.is_empty():
@@ -256,9 +283,9 @@ func _kill(target: Dictionary) -> void:
 	if first_kill_sec < 0.0:
 		first_kill_sec = elapsed
 		first_kill.emit(elapsed)
-		toast.emit("처치 +스크랩 %d" % int(target.scrap))
+		_push_toast("처치 +스크랩 %d" % int(target.scrap))
 	else:
-		toast.emit("처치 +%d" % int(target.scrap))
+		_push_toast("처치 +%d" % int(target.scrap))
 
 
 func _living_count() -> int:
@@ -288,7 +315,7 @@ func _on_wave_cleared() -> void:
 		phase = "choice"
 		pending_choice = true
 		needs_armory_choice.emit()
-		toast.emit("무기고: 화력 또는 탄약효율을 하나 선택")
+		_push_toast("무기고: 화력 또는 탄약효율을 하나 선택")
 		return
 	_advance_zone()
 
@@ -306,7 +333,7 @@ func _advance_zone() -> void:
 	wave_index = 0
 	_spawn_current_wave()
 	zone_changed.emit(zone_index)
-	toast.emit("구역 이동: %s — 목표 %s" % [zone_name(), zone_goal()])
+	_push_toast("구역 이동: %s — 목표 %s" % [zone_name(), zone_goal()])
 
 
 func _fail() -> void:
@@ -319,6 +346,13 @@ func _clear() -> void:
 	phase = "clear"
 	just_cleared = true
 	run_cleared.emit()
+
+
+func _push_toast(text: String) -> void:
+	toast_log.append(text)
+	if toast_log.size() > 6:
+		toast_log.remove_at(0)
+	toast.emit(text)
 
 
 func living_enemies() -> Array[Dictionary]:
