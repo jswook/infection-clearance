@@ -55,6 +55,7 @@ S1 경찰서 지구 플레이테스트에서 감정·밸런스·과금 좌석을
 - QA 체크리스트: [docs/qa/s1-checklist.md](../qa/s1-checklist.md) (기획 1–8, UX 합격 1–5)
 - UX 합격: [docs/ux/acceptance.md](../ux/acceptance.md)
 - UX 온보딩 와이어: [docs/ux/onboarding-s1.md](../ux/onboarding-s1.md)
+- S1 표피·에셋: [s1-asset-needs.md](./s1-asset-needs.md) (#12)
 - UX 인덱스: [docs/ux/README.md](../ux/README.md)
 
 게이트 A–C가 QA 기획 1–8·UX 합격 1–5와 겹치면, 플레이테스트 로그에는 **이 문서의 A/B/C 번호**를 쓰고, 구현 버그는 `qa`로 넘긴다.
