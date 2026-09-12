@@ -1,0 +1,4 @@
+{
+  "name": "봉쇄구역: 제로 (infection-clearance)",
+  "install": "bash .cursor/install.sh"
+}
