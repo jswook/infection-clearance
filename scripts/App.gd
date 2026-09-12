@@ -27,9 +27,11 @@ var lab_scrap: Label
 var lab_stats: Label
 var lab_toast: Label
 var btn_upgrade: Button
+var upgrade_blink: TextureRect
 var btn_auto: Button
 var overlay: ColorRect
 var overlay_box: VBoxContainer
+var overlay_art: TextureRect
 var overlay_title: Label
 var overlay_body: Label
 var overlay_primary: Button
@@ -301,6 +303,14 @@ func _build_mission() -> void:
 	bar_row.offset_bottom = -10
 	bar_row.add_theme_constant_override("separation", 12)
 	bar.add_child(bar_row)
+	upgrade_blink = TextureRect.new()
+	upgrade_blink.custom_minimum_size = Vector2(56, 48)
+	upgrade_blink.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	upgrade_blink.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	upgrade_blink.texture = P0Art.upgrade_blink()
+	upgrade_blink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	upgrade_blink.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	bar_row.add_child(upgrade_blink)
 	btn_upgrade = _button("업그레이드", 20)
 	btn_upgrade.custom_minimum_size = Vector2(200, 48)
 	btn_upgrade.pressed.connect(_on_upgrade_pressed)
@@ -344,6 +354,15 @@ func _build_overlay() -> void:
 	overlay_box.custom_minimum_size = Vector2(640, 0)
 	center.add_child(overlay_box)
 
+	overlay_art = TextureRect.new()
+	overlay_art.custom_minimum_size = Vector2(520, 240)
+	overlay_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	overlay_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	overlay_art.visible = false
+	overlay_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	overlay_box.add_child(overlay_art)
+
 	overlay_title = _label("", 32, Color(0.96, 0.96, 0.9), true)
 	overlay_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	overlay_box.add_child(overlay_title)
@@ -384,6 +403,7 @@ func _show_title() -> void:
 	title_root.visible = true
 	mission_root.visible = false
 	overlay.visible = false
+	_hide_overlay_art()
 	var sl := MetaSave.supply_level
 	if sl >= Balance.SUPPLY_LEVEL_ON_CLEAR:
 		lab_supply.text = "보급 레벨 %d 해금됨" % sl
@@ -399,6 +419,8 @@ func _start_mission() -> void:
 	choice_box.visible = false
 	engine.start_run(MetaSave.supply_level, false)
 	arena.engine = engine
+	arena.reset_visuals()
+	_hide_overlay_art()
 	_sync_hud()
 	_on_toast("목표 상시 표시: %s" % Balance.FINAL_GOAL)
 
@@ -417,8 +439,12 @@ func _sync_hud() -> void:
 	if engine.upgrade_bought:
 		var name := "화력" if engine.upgrade_kind == CombatEngineScript.UPGRADE_FIREPOWER else "탄약효율"
 		btn_upgrade.text = "업글1 완료 · %s" % name
+		if upgrade_blink:
+			upgrade_blink.visible = false
 	else:
 		btn_upgrade.text = "업그레이드  ·  %d 스크랩" % Balance.UPGRADE1_SCRAP_COST
+		if upgrade_blink:
+			upgrade_blink.visible = true
 	if engine.auto_unlocked:
 		btn_auto.disabled = false
 		btn_auto.text = "자동 ON" if engine.auto_on else "자동 OFF"
@@ -431,9 +457,14 @@ func _blink_upgrade_only() -> void:
 	# 다른 HUD는 점멸하지 않는다. 업글 버튼만, 구매 가능할 때.
 	if engine.can_afford_upgrade() and not overlay.visible:
 		var pulse := 0.5 + 0.5 * sin(blink_t * 9.0)
-		btn_upgrade.modulate = Color(1, 1, 0.55 + 0.45 * pulse, 1)
+		var glow := Color(1, 1, 0.55 + 0.45 * pulse, 1)
+		btn_upgrade.modulate = glow
+		if upgrade_blink:
+			upgrade_blink.modulate = glow
 	else:
 		btn_upgrade.modulate = Color.WHITE
+		if upgrade_blink:
+			upgrade_blink.modulate = Color.WHITE
 
 
 func _on_upgrade_pressed() -> void:
@@ -454,6 +485,7 @@ func _show_choice() -> void:
 	choice_box.visible = true
 	overlay_primary.visible = false
 	overlay_secondary.visible = false
+	_hide_overlay_art()
 	overlay_title.text = "업글1  ·  무기고"
 	overlay_body.text = "화력과 탄약효율 중 하나만 고른다. 비용 %d 스크랩." % Balance.UPGRADE1_SCRAP_COST
 
@@ -472,6 +504,7 @@ func _show_goal_card() -> void:
 	overlay_primary.visible = true
 	overlay_primary.text = "확인"
 	overlay_secondary.visible = false
+	_show_overlay_art(P0Art.goal_card(), Vector2(520, 220))
 	overlay_title.text = "작전 목표"
 	overlay_body.text = "S1 %s\n로비 → 복도 → 무기고 → 주차장 → 비상구 B1\n한 걸음에 보스로 갈 수 없다.\n목표: %s" % [Balance.ZONE_NAME, Balance.FINAL_GOAL]
 
@@ -508,12 +541,14 @@ func _on_fail() -> void:
 	choice_box.visible = false
 	overlay_title.text = "작전 실패"
 	if MetaSave.ibeonman_available:
+		_show_overlay_art(P0Art.boost_card(), Vector2(520, 260))
 		overlay_body.text = "첫 실패. 「이번만」 긴급 보급 카드를 1회 사용할 수 있다."
 		overlay_primary.visible = true
 		overlay_primary.text = "「이번만」"
 		overlay_secondary.visible = true
 		overlay_secondary.text = "재도전"
 	else:
+		_hide_overlay_art()
 		overlay_body.text = "재도전 마찰 없음. 즉시 다시 로비부터 시작한다."
 		overlay_primary.visible = false
 		overlay_secondary.visible = true
@@ -525,6 +560,7 @@ func _on_clear() -> void:
 	overlay_mode = "clear"
 	overlay.visible = true
 	choice_box.visible = false
+	_hide_overlay_art()
 	overlay_title.text = "비상구 B1 확보"
 	if first:
 		overlay_body.text = "정식 클리어. 보급 레벨 1 해금.\n상점 / 가챠 / 오프라인은 노출하지 않는다."
@@ -540,20 +576,39 @@ func _on_overlay_primary() -> void:
 	if overlay_mode == "fail" and MetaSave.ibeonman_available:
 		MetaSave.consume_ibeonman()
 		overlay.visible = false
+		_hide_overlay_art()
 		engine.start_run(MetaSave.supply_level, true)
+		arena.reset_visuals()
 		_on_toast("「이번만」 소모  ·  긴급 보급 적용 후 재도전")
 		_sync_hud()
 	elif overlay_mode == "goal":
 		engine.acknowledge_goal_card()
 		overlay.visible = false
+		_hide_overlay_art()
 		_sync_hud()
 	elif overlay_mode == "clear":
 		_show_title()
 
 
+func _show_overlay_art(tex: Texture2D, min_size: Vector2) -> void:
+	if overlay_art == null:
+		return
+	overlay_art.texture = tex
+	overlay_art.custom_minimum_size = min_size
+	overlay_art.visible = tex != null
+
+
+func _hide_overlay_art() -> void:
+	if overlay_art:
+		overlay_art.visible = false
+		overlay_art.texture = null
+
+
 func _on_overlay_secondary() -> void:
 	if overlay_mode == "fail" or overlay_mode == "clear":
 		overlay.visible = false
+		_hide_overlay_art()
 		engine.start_run(MetaSave.supply_level, false)
+		arena.reset_visuals()
 		_sync_hud()
 		_on_toast("재도전  ·  로비부터")

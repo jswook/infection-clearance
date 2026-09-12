@@ -18,6 +18,7 @@ func _ready() -> void:
 	_check_zone_order()
 	_check_onboarding_auto_order()
 	_check_simulated_clear()
+	_check_p0_art()
 	if failed == 0:
 		print("HeadlessVerify: ALL PASSED")
 		get_tree().quit(0)
@@ -167,3 +168,21 @@ func _check_simulated_clear() -> void:
 		_simulate(e, 180.0)
 	_assert(e.phase == "clear" or e.just_cleared, "S1 is clearable with tap+upgrade1 (이번만 if needed)")
 	_assert(e.zone_index >= 2 or e.phase == "clear", "reaches armory or beyond")
+
+
+func _check_p0_art() -> void:
+	var ignored := FileAccess.file_exists("res://art/.gdignore")
+	_assert(not ignored, "art/.gdignore absent so Godot can import PNG")
+	var art_dir := DirAccess.open("res://art")
+	_assert(art_dir != null, "art/ visible to Godot")
+	for path in P0Art.ALL_PATHS:
+		_assert(ResourceLoader.exists(path), "texture import %s" % path)
+	_assert(P0Art.upgrade_blink() != null, "upgrade blink atlas")
+	_assert(P0Art.boost_card() != null, "이번만 card atlas")
+	_assert(P0Art.goal_card() != null, "goal card atlas")
+	_assert(P0Art.fx_kill() != null and P0Art.fx_scrap() != null, "kill/scrap FX atlas")
+	_assert(P0Art.enemy_region("grunt", 1) == P0Art.Z2, "grunt cycles Z1–Z3")
+	_assert(P0Art.enemy_region("runner", 0) == P0Art.Z5, "runner is Z5")
+	_assert(P0Art.enemy_region("brute", 0) == P0Art.Z6, "brute is Z6")
+	_assert(P0Art.enemy_region("add", 0) == P0Art.Z4, "add is Z4")
+	_assert(P0Art.enemy_region("boss", 0) == P0Art.B1, "boss is B1")
