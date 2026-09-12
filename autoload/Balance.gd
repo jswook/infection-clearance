@@ -44,7 +44,7 @@ const B1_SHIELD_DISPLAY := "실드 피해 50%"
 
 ## 적 원형.
 const ENEMY := {
-	"grunt": {"hp": 12.0, "dmg": 5.0, "speed": 88.0, "melee": 42.0, "scrap": 4, "radius": 16.0},
+	"grunt": {"hp": 12.0, "dmg": 4.0, "speed": 70.0, "melee": 42.0, "scrap": 4, "radius": 16.0},
 	"runner": {"hp": 16.0, "dmg": 6.0, "speed": 150.0, "melee": 36.0, "scrap": 6, "radius": 14.0},
 	"brute": {"hp": 42.0, "dmg": 11.0, "speed": 62.0, "melee": 48.0, "scrap": 10, "radius": 22.0},
 	"add": {"hp": 18.0, "dmg": 7.0, "speed": 100.0, "melee": 40.0, "scrap": 5, "radius": 15.0},
@@ -65,8 +65,10 @@ const ZONES: Array = [
 		"waves": [
 			[
 				{"kind": "grunt", "x": ARENA_FIRST_X},
-				{"kind": "grunt", "x": ARENA_SPAWN_X - 80.0},
-				{"kind": "grunt", "x": ARENA_SPAWN_X},
+			],
+			[
+				{"kind": "grunt", "x": ARENA_SPAWN_X - 40.0},
+				{"kind": "grunt", "x": ARENA_SPAWN_X + 120.0},
 			],
 		],
 	},

@@ -6,8 +6,12 @@ var pulse: float = 0.0
 var muzzle: float = 0.0
 var shake: float = 0.0
 
-const H := 400.0
-const W := 1280.0
+func _wh() -> Vector2:
+	if get_parent() is Control:
+		var s: Vector2 = (get_parent() as Control).size
+		if s.x > 8.0 and s.y > 8.0:
+			return s
+	return Vector2(1280, 400)
 
 
 func _process(delta: float) -> void:
@@ -23,9 +27,11 @@ func kick(shot: bool) -> void:
 
 
 func _draw() -> void:
+	var wh := _wh()
+	var W: float = wh.x
+	var H: float = wh.y
 	var ox := sin(pulse * 33.0) * shake * 4.0
 	draw_rect(Rect2(0, 0, W, H), Color(0.04, 0.06, 0.08, 1))
-	# floor
 	draw_rect(Rect2(0, H - 86, W, 86), Color(0.09, 0.11, 0.14, 1))
 	for i in range(0, 18):
 		var x := 40.0 + i * 72.0
@@ -34,7 +40,6 @@ func _draw() -> void:
 			Vector2(x - 10, H), Vector2(x - 38, H),
 		])
 		draw_colored_polygon(stripe, Color(0.84, 0.89, 0.29, 0.22 if i % 2 == 0 else 0.08))
-	# far wall
 	draw_rect(Rect2(0, 0, W, 48), Color(0.07, 0.09, 0.12, 1))
 	draw_line(Vector2(0, 48), Vector2(W, 48), Color(0.24, 0.89, 0.78, 0.35), 2.0)
 	# containment lights
@@ -44,13 +49,13 @@ func _draw() -> void:
 		draw_circle(Vector2(lx, 28), 10.0, Color(0.24, 0.89, 0.78, glow))
 	if engine == null:
 		return
-	_draw_player(ox)
+	_draw_player(ox, H)
 	for e in engine.enemies:
 		if e.alive:
-			_draw_enemy(e, ox)
+			_draw_enemy(e, ox, H)
 
 
-func _draw_player(ox: float) -> void:
+func _draw_player(ox: float, H: float) -> void:
 	var x: float = engine.player.x + ox
 	var y := H - 132.0
 	var body := Color(0.24, 0.88, 0.78)
@@ -67,7 +72,7 @@ func _draw_player(ox: float) -> void:
 	draw_rect(Rect2(x - 22, y + 22, 44.0 * ratio, 5), Color(0.24, 0.88, 0.78))
 
 
-func _draw_enemy(e: Dictionary, ox: float) -> void:
+func _draw_enemy(e: Dictionary, ox: float, H: float) -> void:
 	var x: float = e.x + ox
 	var y := H - 128.0
 	var r: float = e.radius

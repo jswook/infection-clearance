@@ -16,6 +16,7 @@ func _ready() -> void:
 	_check_shield()
 	_check_meta()
 	_check_zone_order()
+	_check_simulated_clear()
 	if failed == 0:
 		print("HeadlessVerify: ALL PASSED")
 		get_tree().quit(0)
@@ -117,3 +118,31 @@ func _check_zone_order() -> void:
 	e._advance_zone()
 	_assert(e.zone_index == before + 1, "one zone per step")
 	_assert(e.zone().id != "b1", "second zone is not boss")
+
+
+func _simulate(e: RefCounted, seconds: float) -> void:
+	var t := 0.0
+	var step := 0.05
+	while t < seconds and e.phase != "fail" and e.phase != "clear":
+		if e.pending_choice or e.phase == "choice":
+			if e.scrap >= Bal.UPGRADE1_SCRAP_COST:
+				e.choose_upgrade(CombatEngineScript.UPGRADE_FIREPOWER)
+			else:
+				break
+		e.process(step)
+		e.tap_fire()
+		if e.can_afford_upgrade():
+			e.choose_upgrade(CombatEngineScript.UPGRADE_FIREPOWER)
+		t += step
+
+
+func _check_simulated_clear() -> void:
+	var e := CombatEngineScript.new()
+	e.start_run(0, false)
+	_simulate(e, 180.0)
+	_assert(e.upgrade_bought, "sim run buys upgrade1")
+	if e.phase == "fail":
+		e.start_run(0, true)
+		_simulate(e, 180.0)
+	_assert(e.phase == "clear" or e.just_cleared, "S1 is clearable with tap+upgrade1 (이번만 if needed)")
+	_assert(e.zone_index >= 2 or e.phase == "clear", "reaches armory or beyond")

@@ -16,6 +16,7 @@ var shortage_t := 0.0
 var title_root: Control
 var mission_root: Control
 var arena: Node2D
+var arena_host: Control
 
 var lab_supply: Label
 var lab_goal: Label
@@ -64,6 +65,8 @@ func _process(delta: float) -> void:
 	if screen == "mission":
 		if not overlay.visible:
 			engine.process(delta)
+			if Input.is_key_pressed(KEY_SPACE):
+				_do_tap()
 		_sync_hud()
 		_blink_upgrade_only()
 
@@ -89,8 +92,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _is_arena_click(pos: Vector2) -> bool:
-	var r := Rect2(arena.global_position, Vector2(1280, 400))
-	return r.has_point(pos)
+	if arena_host == null:
+		return false
+	return arena_host.get_global_rect().has_point(pos)
 
 
 func _do_tap() -> void:
@@ -174,6 +178,10 @@ func _build_title() -> void:
 	title_root = Control.new()
 	title_root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(title_root)
+	var title_bg := ColorRect.new()
+	title_bg.color = Color(0.043, 0.055, 0.07)
+	title_bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	title_root.add_child(title_bg)
 
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -219,97 +227,99 @@ func _build_title() -> void:
 	col.add_child(hint)
 
 
+func _band(color: Color, height: float) -> ColorRect:
+	var band := ColorRect.new()
+	band.color = color
+	band.custom_minimum_size = Vector2(0, height)
+	band.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return band
+
+
 func _build_mission() -> void:
 	mission_root = Control.new()
 	mission_root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mission_root.visible = false
 	add_child(mission_root)
 
-	var top := ColorRect.new()
-	top.color = Color(0.07, 0.09, 0.12, 0.96)
-	top.offset_right = 1280
-	top.offset_bottom = 52
-	mission_root.add_child(top)
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 0)
+	mission_root.add_child(vbox)
 
+	var top := _band(Color(0.07, 0.09, 0.12, 0.96), 52)
+	vbox.add_child(top)
+	var top_row := HBoxContainer.new()
+	top_row.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	top_row.offset_left = 20
+	top_row.offset_right = -20
+	top_row.add_theme_constant_override("separation", 16)
+	top.add_child(top_row)
 	lab_goal = _label("", 20, Color(0.96, 0.96, 0.9), true)
-	lab_goal.position = Vector2(24, 12)
-	lab_goal.size = Vector2(820, 32)
-	mission_root.add_child(lab_goal)
-
+	lab_goal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(lab_goal)
 	lab_zone = _label("", 16, Color(0.24, 0.89, 0.78))
-	lab_zone.position = Vector2(860, 14)
-	lab_zone.size = Vector2(400, 28)
 	lab_zone.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	mission_root.add_child(lab_zone)
+	top_row.add_child(lab_zone)
 
-	var stats := ColorRect.new()
-	stats.color = Color(0.09, 0.11, 0.14, 0.94)
-	stats.offset_top = 52
-	stats.offset_right = 1280
-	stats.offset_bottom = 100
-	mission_root.add_child(stats)
-
+	var stats := _band(Color(0.09, 0.11, 0.14, 0.94), 48)
+	vbox.add_child(stats)
+	var stat_row := HBoxContainer.new()
+	stat_row.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	stat_row.offset_left = 20
+	stat_row.offset_right = -20
+	stat_row.add_theme_constant_override("separation", 20)
+	stats.add_child(stat_row)
 	lab_hp = _label("", 18, Color(0.24, 0.88, 0.78))
-	lab_hp.position = Vector2(24, 62)
-	lab_hp.size = Vector2(260, 28)
-	mission_root.add_child(lab_hp)
-
+	stat_row.add_child(lab_hp)
 	lab_ammo = _label("", 18, Color(0.84, 0.89, 0.29))
-	lab_ammo.position = Vector2(300, 62)
-	lab_ammo.size = Vector2(260, 28)
-	mission_root.add_child(lab_ammo)
-
+	stat_row.add_child(lab_ammo)
 	lab_scrap = _label("", 18, Color(0.95, 0.95, 0.9))
-	lab_scrap.position = Vector2(580, 62)
-	lab_scrap.size = Vector2(220, 28)
-	mission_root.add_child(lab_scrap)
-
+	stat_row.add_child(lab_scrap)
 	lab_stats = _label("", 16, Color(0.7, 0.76, 0.8))
-	lab_stats.position = Vector2(820, 64)
-	lab_stats.size = Vector2(440, 28)
+	lab_stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lab_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	mission_root.add_child(lab_stats)
+	stat_row.add_child(lab_stats)
 
+	arena_host = Control.new()
+	arena_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	arena_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	arena_host.clip_contents = true
+	arena_host.custom_minimum_size = Vector2(0, 280)
+	vbox.add_child(arena_host)
 	arena = preload("res://scripts/ArenaView.gd").new()
 	arena.engine = engine
-	arena.position = Vector2(0, 100)
-	mission_root.add_child(arena)
+	arena_host.add_child(arena)
 
-	var bar := ColorRect.new()
-	bar.color = Color(0.07, 0.09, 0.12, 0.97)
-	bar.offset_top = 500
-	bar.offset_right = 1280
-	bar.offset_bottom = 580
-	mission_root.add_child(bar)
-
+	var bar := _band(Color(0.07, 0.09, 0.12, 0.97), 72)
+	vbox.add_child(bar)
+	var bar_row := HBoxContainer.new()
+	bar_row.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	bar_row.offset_left = 16
+	bar_row.offset_right = -16
+	bar_row.offset_top = 10
+	bar_row.offset_bottom = -10
+	bar_row.add_theme_constant_override("separation", 12)
+	bar.add_child(bar_row)
 	btn_upgrade = _button("업그레이드", 20)
-	btn_upgrade.position = Vector2(24, 516)
 	btn_upgrade.custom_minimum_size = Vector2(200, 48)
 	btn_upgrade.pressed.connect(_on_upgrade_pressed)
-	mission_root.add_child(btn_upgrade)
-
+	bar_row.add_child(btn_upgrade)
 	btn_auto = _ghost_button("자동 잠김", 18)
-	btn_auto.position = Vector2(240, 520)
-	btn_auto.custom_minimum_size = Vector2(160, 42)
+	btn_auto.custom_minimum_size = Vector2(140, 42)
 	btn_auto.disabled = true
 	btn_auto.pressed.connect(_toggle_auto)
-	mission_root.add_child(btn_auto)
-
+	bar_row.add_child(btn_auto)
 	var tap_hint := _label("아레나 클릭 또는 Space — 탭 처치", 15, Color(0.55, 0.6, 0.64))
-	tap_hint.position = Vector2(430, 530)
-	tap_hint.size = Vector2(420, 28)
-	mission_root.add_child(tap_hint)
-
+	tap_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar_row.add_child(tap_hint)
 	var back := _ghost_button("철수", 16)
-	back.position = Vector2(1120, 522)
 	back.pressed.connect(_show_title)
-	mission_root.add_child(back)
+	bar_row.add_child(back)
 
-	lab_toast = _label("", 18, Color(0.84, 0.89, 0.29), true)
-	lab_toast.position = Vector2(24, 596)
-	lab_toast.size = Vector2(1230, 100)
+	lab_toast = _label("", 16, Color(0.84, 0.89, 0.29), true)
+	lab_toast.custom_minimum_size = Vector2(0, 88)
 	lab_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mission_root.add_child(lab_toast)
+	vbox.add_child(lab_toast)
 
 	_build_overlay()
 
@@ -419,8 +429,8 @@ func _sync_hud() -> void:
 func _blink_upgrade_only() -> void:
 	# 다른 HUD는 점멸하지 않는다. 업글 버튼만, 구매 가능할 때.
 	if engine.can_afford_upgrade() and not overlay.visible:
-		var a := 0.55 + 0.45 * (0.5 + 0.5 * sin(blink_t * 8.0))
-		btn_upgrade.modulate = Color(1, 1, 1, a)
+		var pulse := 0.5 + 0.5 * sin(blink_t * 9.0)
+		btn_upgrade.modulate = Color(1, 1, 0.55 + 0.45 * pulse, 1)
 	else:
 		btn_upgrade.modulate = Color.WHITE
 
@@ -463,8 +473,11 @@ func _toggle_auto() -> void:
 
 func _on_toast(text: String) -> void:
 	toast_text = text
-	toast_t = 3.2
-	lab_toast.text = text
+	toast_t = 4.0
+	if engine.toast_log.is_empty():
+		lab_toast.text = text
+	else:
+		lab_toast.text = "\n".join(engine.toast_log)
 	lab_toast.modulate.a = 1.0
 
 
