@@ -1,10 +1,26 @@
 extends Node2D
-## S1 아레나. 엔진 상태를 즉시 그린다.
+## S1 아레나. 엔진 상태를 즉시 그린다. P0 적·FX 텍스처는 시각만 담당.
 
 var engine: CombatEngine
 var pulse: float = 0.0
 var muzzle: float = 0.0
 var shake: float = 0.0
+
+var _chroma: ShaderMaterial
+var _fx_mat: ShaderMaterial
+var _enemy_sprites: Dictionary = {}
+var _seen_alive: Dictionary = {}
+var _fx: Array[Dictionary] = []
+var _layer: Node2D
+
+
+func _ready() -> void:
+	_chroma = P0Art.chroma_material()
+	_fx_mat = P0Art.fx_material()
+	_layer = Node2D.new()
+	_layer.name = "P0Sprites"
+	add_child(_layer)
+
 
 func _wh() -> Vector2:
 	if get_parent() is Control:
@@ -18,12 +34,28 @@ func _process(delta: float) -> void:
 	pulse += delta
 	muzzle = maxf(0.0, muzzle - delta * 6.0)
 	shake = maxf(0.0, shake - delta * 18.0)
+	_sync_enemy_art()
+	_tick_fx(delta)
 	queue_redraw()
 
 
 func kick(shot: bool) -> void:
 	muzzle = 1.0
 	shake = 1.0 if shot else 0.55
+
+
+func reset_visuals() -> void:
+	for id in _enemy_sprites.keys():
+		var spr: Sprite2D = _enemy_sprites[id]
+		if is_instance_valid(spr):
+			spr.queue_free()
+	_enemy_sprites.clear()
+	_seen_alive.clear()
+	for item in _fx:
+		var node: Node = item.get("node")
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_fx.clear()
 
 
 func _draw() -> void:
@@ -42,7 +74,6 @@ func _draw() -> void:
 		draw_colored_polygon(stripe, Color(0.84, 0.89, 0.29, 0.22 if i % 2 == 0 else 0.08))
 	draw_rect(Rect2(0, 0, W, 48), Color(0.07, 0.09, 0.12, 1))
 	draw_line(Vector2(0, 48), Vector2(W, 48), Color(0.24, 0.89, 0.78, 0.35), 2.0)
-	# containment lights
 	for i in range(6):
 		var lx := 90.0 + i * 200.0
 		var glow := 0.08 + 0.04 * sin(pulse * 2.2 + i)
@@ -52,7 +83,7 @@ func _draw() -> void:
 	_draw_player(ox, H)
 	for e in engine.enemies:
 		if e.alive:
-			_draw_enemy(e, ox, H)
+			_draw_enemy_chrome(e, ox, H)
 
 
 func _draw_player(ox: float, H: float) -> void:
@@ -66,30 +97,147 @@ func _draw_player(ox: float, H: float) -> void:
 	draw_rect(Rect2(x + 10, y - 18, 36 + muzzle * 10.0, 6), Color(0.84, 0.89, 0.29))
 	if muzzle > 0.0:
 		draw_circle(Vector2(x + 52, y - 15), 8.0 + muzzle * 10.0, Color(1, 0.92, 0.4, muzzle))
-	# hp pip
 	var ratio: float = clampf(engine.player.hp / engine.player.max_hp, 0.0, 1.0)
 	draw_rect(Rect2(x - 22, y + 22, 44, 5), Color(0.15, 0.16, 0.18))
 	draw_rect(Rect2(x - 22, y + 22, 44.0 * ratio, 5), Color(0.24, 0.88, 0.78))
 
 
-func _draw_enemy(e: Dictionary, ox: float, H: float) -> void:
+func _enemy_feet(e: Dictionary, ox: float, H: float) -> Vector2:
 	var x: float = e.x + ox
 	var y := H - 128.0
-	var r: float = e.radius
-	var col := Color(0.89, 0.23, 0.29)
 	if e.kind == "runner":
-		col = Color(0.95, 0.38, 0.22)
 		y += 6.0
-	elif e.kind == "brute":
-		col = Color(0.62, 0.12, 0.22)
 	elif e.kind == "boss":
-		col = Color(0.72, 0.08, 0.2)
 		y -= 10.0
-	draw_circle(Vector2(x, y), r, col)
-	draw_circle(Vector2(x - r * 0.35, y - r * 0.2), r * 0.22, Color(0.12, 0.02, 0.04))
-	draw_circle(Vector2(x + r * 0.3, y - r * 0.15), r * 0.18, Color(0.12, 0.02, 0.04))
+	return Vector2(x, y)
+
+
+func _draw_enemy_chrome(e: Dictionary, ox: float, H: float) -> void:
+	var feet := _enemy_feet(e, ox, H)
+	var r: float = e.radius
+	var spr: Sprite2D = _enemy_sprites.get(int(e.id))
+	if spr == null or spr.texture == null:
+		var col := Color(0.89, 0.23, 0.29)
+		if e.kind == "runner":
+			col = Color(0.95, 0.38, 0.22)
+		elif e.kind == "brute":
+			col = Color(0.62, 0.12, 0.22)
+		elif e.kind == "boss":
+			col = Color(0.72, 0.08, 0.2)
+		draw_circle(feet, r, col)
+		draw_circle(Vector2(feet.x - r * 0.35, feet.y - r * 0.2), r * 0.22, Color(0.12, 0.02, 0.04))
+		draw_circle(Vector2(feet.x + r * 0.3, feet.y - r * 0.15), r * 0.18, Color(0.12, 0.02, 0.04))
 	if e.shielded:
-		draw_arc(Vector2(x, y), r + 8.0, 0.0, TAU, 28, Color(0.45, 0.75, 1.0, 0.7), 3.0)
+		draw_arc(feet, r + 18.0, 0.0, TAU, 28, Color(0.45, 0.75, 1.0, 0.7), 3.0)
 	var ratio: float = clampf(e.hp / e.max_hp, 0.0, 1.0)
-	draw_rect(Rect2(x - r, y + r + 8, r * 2.0, 4), Color(0.12, 0.08, 0.08))
-	draw_rect(Rect2(x - r, y + r + 8, r * 2.0 * ratio, 4), Color(0.89, 0.23, 0.29))
+	draw_rect(Rect2(feet.x - r, feet.y + 10, r * 2.0, 4), Color(0.12, 0.08, 0.08))
+	draw_rect(Rect2(feet.x - r, feet.y + 10, r * 2.0 * ratio, 4), Color(0.89, 0.23, 0.29))
+
+
+func _sync_enemy_art() -> void:
+	if engine == null:
+		return
+	var living: Dictionary = {}
+	var ox := sin(pulse * 33.0) * shake * 4.0
+	var H := _wh().y
+	for e in engine.enemies:
+		if not e.alive:
+			continue
+		var eid := int(e.id)
+		living[eid] = {
+			"x": e.x,
+			"kind": e.kind,
+			"radius": e.radius,
+		}
+		_place_enemy_sprite(e, ox, H)
+	for eid in _seen_alive.keys():
+		if not living.has(eid):
+			var prev: Dictionary = _seen_alive[eid]
+			_spawn_kill_scrap_fx(float(prev.x), H)
+			_free_enemy_sprite(eid)
+	for eid in _enemy_sprites.keys():
+		if not living.has(eid):
+			_free_enemy_sprite(eid)
+	_seen_alive = living
+
+
+func _place_enemy_sprite(e: Dictionary, ox: float, H: float) -> void:
+	var eid := int(e.id)
+	var spr: Sprite2D = _enemy_sprites.get(eid)
+	var region := P0Art.enemy_region(String(e.kind), eid)
+	if spr == null:
+		spr = Sprite2D.new()
+		spr.texture = P0Art.tex(P0Art.ENEMIES_SHEET)
+		spr.region_enabled = true
+		spr.region_rect = region
+		spr.centered = false
+		spr.material = _chroma
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_layer.add_child(spr)
+		_enemy_sprites[eid] = spr
+	if spr.texture == null:
+		spr.visible = false
+		return
+	spr.visible = true
+	spr.region_rect = region
+	var target_h: float = float(e.radius) * 6.8
+	var s: float = target_h / maxf(region.size.y, 1.0)
+	if e.kind == "boss":
+		s *= 1.2
+	spr.scale = Vector2(s, s)
+	var feet := _enemy_feet(e, ox, H)
+	spr.position = Vector2(feet.x - region.size.x * 0.5 * s, feet.y - region.size.y * s)
+
+
+func _free_enemy_sprite(eid: int) -> void:
+	if _enemy_sprites.has(eid):
+		var spr: Sprite2D = _enemy_sprites[eid]
+		if is_instance_valid(spr):
+			spr.queue_free()
+		_enemy_sprites.erase(eid)
+
+
+func _spawn_kill_scrap_fx(x: float, H: float) -> void:
+	var y := H - 150.0
+	_push_fx(P0Art.fx_kill(), Vector2(x, y - 8.0), 0.22, 0.4, Vector2(0, -20))
+	_push_fx(P0Art.fx_scrap(), Vector2(x + 22.0, y - 36.0), 0.2, 0.55, Vector2(6, -40))
+
+
+func _push_fx(tex: Texture2D, pos: Vector2, scale: float, life: float, drift: Vector2) -> void:
+	if tex == null:
+		return
+	var spr := Sprite2D.new()
+	spr.texture = tex
+	spr.centered = true
+	spr.scale = Vector2(scale, scale)
+	spr.position = pos
+	spr.material = _fx_mat
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_layer.add_child(spr)
+	_fx.append({
+		"node": spr,
+		"t": 0.0,
+		"life": life,
+		"origin": pos,
+		"drift": drift,
+		"base_scale": Vector2(scale, scale),
+	})
+
+
+func _tick_fx(delta: float) -> void:
+	var keep: Array[Dictionary] = []
+	for item in _fx:
+		var node: Sprite2D = item.node
+		if node == null or not is_instance_valid(node):
+			continue
+		item.t = float(item.t) + delta
+		var life: float = float(item.life)
+		var u: float = clampf(float(item.t) / life, 0.0, 1.0)
+		node.position = item.origin + item.drift * u
+		node.modulate.a = 1.0 - u
+		node.scale = item.base_scale * (1.0 + 0.35 * u)
+		if float(item.t) < life:
+			keep.append(item)
+		else:
+			node.queue_free()
+	_fx = keep
