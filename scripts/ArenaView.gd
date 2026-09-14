@@ -6,20 +6,24 @@ var pulse: float = 0.0
 var muzzle: float = 0.0
 var shake: float = 0.0
 
-var _chroma: ShaderMaterial
-var _fx_mat: ShaderMaterial
 var _enemy_sprites: Dictionary = {}
 var _seen_alive: Dictionary = {}
 var _fx: Array[Dictionary] = []
 var _layer: Node2D
+var _player_sprite: Sprite2D
 
 
 func _ready() -> void:
-	_chroma = P0Art.chroma_material()
-	_fx_mat = P0Art.fx_material()
 	_layer = Node2D.new()
 	_layer.name = "P0Sprites"
 	add_child(_layer)
+	_player_sprite = Sprite2D.new()
+	_player_sprite.name = "PlayerSprite"
+	_player_sprite.centered = true
+	_player_sprite.flip_h = true
+	_player_sprite.texture = P0Art.player()
+	_player_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_layer.add_child(_player_sprite)
 
 
 func _wh() -> Vector2:
@@ -35,6 +39,7 @@ func _process(delta: float) -> void:
 	muzzle = maxf(0.0, muzzle - delta * 6.0)
 	shake = maxf(0.0, shake - delta * 18.0)
 	_sync_enemy_art()
+	_sync_player_art()
 	_tick_fx(delta)
 	queue_redraw()
 
@@ -87,14 +92,18 @@ func _draw() -> void:
 
 
 func _draw_player(ox: float, H: float) -> void:
+	if engine.player.is_empty() or not engine.player.has("x"):
+		return
 	var x: float = engine.player.x + ox
 	var y := H - 132.0
-	var body := Color(0.24, 0.88, 0.78)
-	if engine.ibeonman:
-		body = Color(0.84, 0.89, 0.29)
-	draw_circle(Vector2(x, y - 46), 16.0, body)
-	draw_rect(Rect2(x - 14, y - 30, 28, 46), body)
-	draw_rect(Rect2(x + 10, y - 18, 36 + muzzle * 10.0, 6), Color(0.84, 0.89, 0.29))
+	var has_sprite := _player_sprite != null and _player_sprite.texture != null
+	if not has_sprite:
+		var body := Color(0.24, 0.88, 0.78)
+		if engine.ibeonman:
+			body = Color(0.84, 0.89, 0.29)
+		draw_circle(Vector2(x, y - 46), 16.0, body)
+		draw_rect(Rect2(x - 14, y - 30, 28, 46), body)
+		draw_rect(Rect2(x + 10, y - 18, 36 + muzzle * 10.0, 6), Color(0.84, 0.89, 0.29))
 	if muzzle > 0.0:
 		draw_circle(Vector2(x + 52, y - 15), 8.0 + muzzle * 10.0, Color(1, 0.92, 0.4, muzzle))
 	var ratio: float = clampf(engine.player.hp / engine.player.max_hp, 0.0, 1.0)
@@ -164,29 +173,38 @@ func _sync_enemy_art() -> void:
 func _place_enemy_sprite(e: Dictionary, ox: float, H: float) -> void:
 	var eid := int(e.id)
 	var spr: Sprite2D = _enemy_sprites.get(eid)
+	var src := P0Art.tex(P0Art.ENEMIES_SHEET)
+	var use_atlas := P0Art.is_p0_sheet(src)
 	var region := P0Art.enemy_region(String(e.kind), eid)
 	if spr == null:
 		spr = Sprite2D.new()
-		spr.texture = P0Art.tex(P0Art.ENEMIES_SHEET)
-		spr.region_enabled = true
-		spr.region_rect = region
+		spr.texture = src
 		spr.centered = false
-		spr.material = _chroma
-		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		_layer.add_child(spr)
 		_enemy_sprites[eid] = spr
 	if spr.texture == null:
 		spr.visible = false
 		return
 	spr.visible = true
-	spr.region_rect = region
+	var frame_h: float
+	var frame_w: float
+	if use_atlas:
+		spr.region_enabled = true
+		spr.region_rect = region
+		frame_w = region.size.x
+		frame_h = region.size.y
+	else:
+		spr.region_enabled = false
+		frame_w = float(spr.texture.get_width())
+		frame_h = float(spr.texture.get_height())
 	var target_h: float = float(e.radius) * 6.8
-	var s: float = target_h / maxf(region.size.y, 1.0)
+	var s: float = target_h / maxf(frame_h, 1.0)
 	if e.kind == "boss":
 		s *= 1.2
 	spr.scale = Vector2(s, s)
 	var feet := _enemy_feet(e, ox, H)
-	spr.position = Vector2(feet.x - region.size.x * 0.5 * s, feet.y - region.size.y * s)
+	spr.position = Vector2(feet.x - frame_w * 0.5 * s, feet.y - frame_h * s)
 
 
 func _free_enemy_sprite(eid: int) -> void:
@@ -203,6 +221,28 @@ func _spawn_kill_scrap_fx(x: float, H: float) -> void:
 	_push_fx(P0Art.fx_scrap(), Vector2(x + 22.0, y - 36.0), 0.2, 0.55, Vector2(6, -40))
 
 
+func _sync_player_art() -> void:
+	if _player_sprite == null:
+		return
+	if engine == null or engine.player.is_empty() or not engine.player.has("x") or _player_sprite.texture == null:
+		_player_sprite.visible = false
+		return
+	_player_sprite.visible = true
+	var tex: Texture2D = _player_sprite.texture
+	var frame_h := float(tex.get_height())
+	var target_h := 152.0
+	var s: float = target_h / maxf(frame_h, 1.0)
+	_player_sprite.scale = Vector2(s, s)
+	var ox := sin(pulse * 33.0) * shake * 4.0
+	var H := _wh().y
+	var feet := Vector2(engine.player.x + ox, H - 132.0)
+	_player_sprite.position = Vector2(feet.x, feet.y - frame_h * s * 0.5)
+	if engine.ibeonman:
+		_player_sprite.modulate = Color(1.08, 1.05, 0.72)
+	else:
+		_player_sprite.modulate = Color.WHITE
+
+
 func _push_fx(tex: Texture2D, pos: Vector2, scale: float, life: float, drift: Vector2) -> void:
 	if tex == null:
 		return
@@ -211,7 +251,6 @@ func _push_fx(tex: Texture2D, pos: Vector2, scale: float, life: float, drift: Ve
 	spr.centered = true
 	spr.scale = Vector2(scale, scale)
 	spr.position = pos
-	spr.material = _fx_mat
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_layer.add_child(spr)
 	_fx.append({
