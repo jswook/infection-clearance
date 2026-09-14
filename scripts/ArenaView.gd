@@ -91,7 +91,7 @@ func _draw_player(ox: float, H: float) -> void:
 	var y := H - 132.0
 	var body := Color(0.24, 0.88, 0.78)
 	if engine.ibeonman:
-		body = Color(0.95, 0.86, 0.32)
+		body = Color(0.84, 0.89, 0.29)
 	draw_circle(Vector2(x, y - 46), 16.0, body)
 	draw_rect(Rect2(x - 14, y - 30, 28, 46), body)
 	draw_rect(Rect2(x + 10, y - 18, 36 + muzzle * 10.0, 6), Color(0.84, 0.89, 0.29))

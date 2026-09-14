@@ -23,12 +23,13 @@ const BASE_AMMO := 20.0
 const AMMO_PER_SHOT := 1.0
 
 ## 업글1 — 화력 vs 탄약효율, 상호 배타, 스크랩 비용.
+## 탄약효율 UI/문서는 아래 세 상수를 그대로 쓴다. 하드코딩 금지.
 const UPGRADE1_SCRAP_COST := 12
 const UPGRADE1_FIREPOWER_MULT := 1.75
 const UPGRADE1_AMMO_COST_MULT := 0.45
 const UPGRADE1_AMMO_MAG_BONUS := 8.0
 
-## 「이번만」 1회성 무료 부스트 (첫 실패 카드).
+## 「이번만」 1회성 무료 보급 (첫 실패 카드). 골드/상점 보상 아님.
 const IBEONMAN_DAMAGE_MULT := 1.4
 const IBEONMAN_HP_BONUS := 20.0
 const IBEONMAN_AMMO_BONUS := 10.0
@@ -185,3 +186,22 @@ static func apply_incoming_to_enemy(raw_damage: float, shielded: bool) -> float:
 	if shielded:
 		return raw_damage * B1_SHIELD_DAMAGE_TAKEN
 	return raw_damage
+
+
+## HUD/오버레이 카피. 수치는 위 상수와 동기. 골드·상점 표현 금지.
+static func firepower_choice_copy() -> String:
+	return "화력  —  공격력 ×%.2f" % UPGRADE1_FIREPOWER_MULT
+
+
+static func ammo_eff_choice_copy() -> String:
+	return "탄약효율  —  탄소모 ×%.2f · 탄창 +%.0f" % [UPGRADE1_AMMO_COST_MULT, UPGRADE1_AMMO_MAG_BONUS]
+
+
+static func ibeonman_supply_copy() -> String:
+	return "긴급 보급  ·  화력 ×%.2f · 체력 +%.0f · 탄약 +%.0f" % [
+		IBEONMAN_DAMAGE_MULT, IBEONMAN_HP_BONUS, IBEONMAN_AMMO_BONUS
+	]
+
+
+static func armory_auto_hint() -> String:
+	return "하나만 선택한다. 자동 사격은 목표 카드 확인 뒤에 해금된다."
