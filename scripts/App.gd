@@ -303,7 +303,7 @@ func _build_mission() -> void:
 	bar_row.add_theme_constant_override("separation", 12)
 	bar.add_child(bar_row)
 	upgrade_blink = TextureRect.new()
-	upgrade_blink.custom_minimum_size = Vector2(80, 64)
+	upgrade_blink.custom_minimum_size = Vector2(168, 52)
 	upgrade_blink.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	upgrade_blink.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	upgrade_blink.texture = P0Art.upgrade_blink()
@@ -515,7 +515,7 @@ func _show_goal_card() -> void:
 	overlay_primary.visible = true
 	overlay_primary.text = "확인"
 	overlay_secondary.visible = false
-	_show_overlay_art(P0Art.goal_card(), Vector2(520, 220))
+	_show_overlay_art(P0Art.goal_card(), Vector2(560, 180))
 	overlay_title.text = "작전 목표"
 	overlay_body.text = "S1 %s\n로비 → 복도 → 무기고 → 주차장 → 비상구 B1\n한 걸음에 보스로 갈 수 없다.\n목표: %s\n확인하면 자동 사격이 해금된다." % [Balance.ZONE_NAME, Balance.FINAL_GOAL]
 
@@ -552,7 +552,7 @@ func _on_fail() -> void:
 	choice_box.visible = false
 	overlay_title.text = "작전 실패"
 	if MetaSave.ibeonman_available:
-		_show_overlay_art(P0Art.boost_card(), Vector2(520, 260))
+		_show_overlay_art(P0Art.boost_card(), Vector2(560, 320))
 		overlay_body.text = "첫 실패. 「이번만」 긴급 보급 카드를 1회 사용할 수 있다.\n%s" % Balance.ibeonman_supply_copy()
 		overlay_primary.visible = true
 		overlay_primary.text = "「이번만」"

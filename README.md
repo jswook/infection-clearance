@@ -43,17 +43,29 @@ S1에 **두지 않는다:** 상점, 가챠, 에너지 페이월, 조이스틱, �
 
 `art/.gdignore` 없음. Godot이 PNG를 `Texture2D`로 임포트한다. HUD/아레나는 `P0Art` → `TextureRect`·`Sprite2D`. 전투 로직·UX-4 순서(업글1 → 선택 → 목표 카드 → 자동)는 그대로다.
 
-#12 실에셋은 **같은 경로**에 덮어쓴다. 코드 경로를 바꾸지 않는다.
+#12 실에셋은 **같은 경로**에 덮어쓴다. 1280×720 시트는 아틀라스 크롭, 타이트 PNG는 전체 텍스처.
 
 | 경로 | 연결 |
 | --- | --- |
-| `art/ui/ui_upgrade_blink.png` | 업글 버튼 옆 `TextureRect` 점멸 |
+| `art/ui/ui_upgrade.png` | 업글 버튼 옆 `TextureRect` 점멸 (이 훅만) |
 | `art/ui/ui_boost_once.png` | 첫 실패 「이번만」 보급 오버레이. 카피=스크랩/보급 (골드 금지) |
 | `art/ui/ui_goal_exit.png` | 업글1 이후 목표(비상구) 카드 |
-| `art/enemies/enemies_z1_b1.png` | Z1–Z6 · B1 `Sprite2D` 실루엣 |
+| `art/enemies/enemies_z1_b1.png` | Z1–Z6 · B1 `Sprite2D` |
 | `art/fx/fx_kill_scrap.png` | 처치 버스트 + 스크랩 획득 FX |
+| `art/characters/player.png` | 아레나 `PlayerSprite` |
 
-목록·드롭인 규칙: `art/README.md`. 아틀라스 좌표는 `scripts/P0Art.gd`. UI가 P0 1280×720 시트가 아니면 전체 텍스처.
+목록·드롭인 규칙: `art/README.md`. 아틀라스 좌표는 `scripts/P0Art.gd`.
+
+## Android export (stub)
+
+`export_presets.cfg`에 Android 프리셋만 넣었다. **사이닝 키스토어는 비움** (나중에).
+
+APK를 뽑으려면 Godot 4.7.x **Android export templates**, Android SDK, JDK가 필요하다. 템플릿이 없으면 에디터 Export가 APK를 만들지 못한다. 아트 배선은 Android 빌드와 무관하다.
+
+```bash
+# 템플릿·SDK 설치 후
+godot --path . --headless --export-release Android export/android/infection-clearance.apk
+```
 
 ## 헤드리스 검증
 
