@@ -1,17 +1,19 @@
-# 아트 (P0 게임레디 2D)
+# 아트 (SERVICE / #12 프로덕션)
 
-[#11](https://github.com/jswook/infection-clearance/issues/11)용 P0 게임레디 2D 스프라이트. **게임 로직은 바꾸지 않는다.**
+[#12](https://github.com/jswook/infection-clearance/issues/12) P0 훅 경로를 **서비스 레벨 프로덕션** PNG로 교체한다. 게임 로직은 바꾸지 않는다. 파이프라인 추적: [#24](https://github.com/jswook/infection-clearance/issues/24).
 
-`art/.gdignore`는 두지 않는다. Godot이 아래 PNG를 `Texture2D`로 임포트하고, `scenes/App.tscn`(`scripts/App.gd`, `scripts/ArenaView.gd`)이 `TextureRect`/`Sprite2D`로 연결한다.
+HUD 다이어트(첫 10분 HUD에 편성·기지 허브, 결제+, 스킬 바, 골드 카피 금지. 「이번만」 카피는 스크랩/보급만)는 [`docs/ux/production-s1.md`](../docs/ux/production-s1.md)를 따른다.
 
-## P0 게임레디 2D
+`art/.gdignore`는 두지 않는다. Godot이 아래 PNG를 `Texture2D`로 임포트하고, `scenes/App.tscn`(`scripts/App.gd`, `scripts/ArenaView.gd`)이 `TextureRect`/`Sprite2D`로 연결한다. 새 슬롯·새 HUD를 만들지 않는다.
 
-모두 1280×720 RGBA PNG. 배경은 실제 알파(투명)다.
+## 프로덕션 시트 (P0 훅 교체)
+
+모두 1280×720. 경로만 교체한다.
 
 | 파일 | 용도 |
 | --- | --- |
-| `ui/ui_upgrade.png` | UI 업글 버튼 배지 |
-| `ui/ui_boost_once.png` | 「이번만」 무료 부스트 카드 |
+| `ui/ui_upgrade.png` | UI 업글 버튼 배지 (점멸은 이 훅만) |
+| `ui/ui_boost_once.png` | 「이번만」 무료 부스트 카드 (스크랩/보급, 골드 금지) |
 | `ui/ui_goal_exit.png` | 스테이지 목표 카드 (비상구) |
 | `enemies/enemies_z1_b1.png` | Z1–Z6 · B1 시트 (grunt Z1–Z3, add Z4, runner Z5, brute Z6, boss B1) |
 | `fx/fx_kill_scrap.png` | 처치 버스트 + 스크랩(탄피) FX |
