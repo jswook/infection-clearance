@@ -92,6 +92,8 @@ func _draw() -> void:
 
 
 func _draw_player(ox: float, H: float) -> void:
+	if engine.player.is_empty() or not engine.player.has("x"):
+		return
 	var x: float = engine.player.x + ox
 	var y := H - 132.0
 	var has_sprite := _player_sprite != null and _player_sprite.texture != null
@@ -222,7 +224,7 @@ func _spawn_kill_scrap_fx(x: float, H: float) -> void:
 func _sync_player_art() -> void:
 	if _player_sprite == null:
 		return
-	if engine == null or _player_sprite.texture == null:
+	if engine == null or engine.player.is_empty() or not engine.player.has("x") or _player_sprite.texture == null:
 		_player_sprite.visible = false
 		return
 	_player_sprite.visible = true

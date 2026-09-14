@@ -7,7 +7,7 @@
 - 엔진: Godot 4.7.2.stable (`config/features` = 4.7)
 - 렌더러: `gl_compatibility` / OpenGL 4.5 Mesa llvmpipe (GPU 없음, Xvfb `:1`)
 - 해상도: 1280x720 (`display/window/size/viewport_*` 과 동일)
-- P0 아트: #18 (`cursor/wire-p0-art-1b2b`) 머지 후의 `develop` 기준
+- P0 아트: #18 배선 후, #27 프로덕션 시트는 `cursor/wire-production-art-bf02` 에서 같은 하네스로 다시 찍는다.
 
 ## 재현
 
