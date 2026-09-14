@@ -2,7 +2,7 @@
 
 대외명 **봉쇄구역: 제로**. 미션·보급 카피는 **감염 클리어런스**. 레포는 `infection-clearance`.
 
-이 폴더는 S1 경찰서 지구 온보딩(0–10분) 와이어와 합격 기준을 고정한다. Godot 코드는 여기 문서만으로 바꾸지 않는다.
+이 폴더는 S1 경찰서 지구 온보딩(0–10분) 와이어, 합격 기준, 프로덕션 표피 스펙을 고정한다. Godot 코드는 여기 문서만으로 바꾸지 않는다.
 
 ## 문서
 
@@ -11,6 +11,7 @@
 | [onboarding-s1.md](./onboarding-s1.md) | S1 경찰서 지구 0–10분 온보딩 와이어 |
 | [acceptance.md](./acceptance.md) | UX 합격 1–5 |
 | [naming.md](./naming.md) | 대외명 / 미션·보급 카피 / 레포 표기 |
+| [production-s1.md](./production-s1.md) | S1 프로덕션 비주얼 스펙 (#12) |
 
 관련 QA 체크리스트: [docs/qa/s1-checklist.md](../qa/s1-checklist.md)
 
