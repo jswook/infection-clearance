@@ -49,6 +49,19 @@ func _check_balance() -> void:
 	_assert(bool(Bal.ZONES[2].get("choice", false)), "armory is choice gate")
 	_assert(bool(Bal.ENEMY.boss.get("shielded", false)), "boss shielded")
 	_assert(Bal.SUPPLY_LEVEL_ON_CLEAR == 1, "supply unlocks at 1")
+	_assert(is_equal_approx(Bal.UPGRADE1_AMMO_COST_MULT, 0.45), "탄약효율 cost mult")
+	_assert(is_equal_approx(Bal.UPGRADE1_AMMO_MAG_BONUS, 8.0), "탄약효율 mag bonus")
+	var ammo_copy := Bal.ammo_eff_choice_copy()
+	_assert(ammo_copy.contains("%.2f" % Bal.UPGRADE1_AMMO_COST_MULT) or ammo_copy.contains("0.45"), "탄약효율 copy uses Balance cost")
+	_assert(ammo_copy.contains("8"), "탄약효율 copy uses mag bonus")
+	_assert(ammo_copy.contains("탄약효율") and ammo_copy.contains("탄소모"), "탄약효율 copy labels")
+	_assert(not ammo_copy.contains("골드") and not ammo_copy.to_lower().contains("gold"), "탄약효율 copy has no gold")
+	var boost_copy := Bal.ibeonman_supply_copy()
+	_assert(boost_copy.contains("보급"), "이번만 copy is 보급")
+	_assert(not boost_copy.contains("골드") and not boost_copy.to_lower().contains("gold"), "이번만 copy has no gold")
+	_assert(boost_copy.contains("%.2f" % Bal.IBEONMAN_DAMAGE_MULT) or boost_copy.contains("1.40") or boost_copy.contains("1.4"), "이번만 copy uses damage mult")
+	_assert(Bal.armory_auto_hint().contains("목표 카드 확인"), "armory hint: auto after goal card")
+	_assert(not Bal.armory_auto_hint().contains("선택 후 자동"), "armory hint does not unlock auto on choice")
 
 
 func _check_combat_loop() -> void:
@@ -84,6 +97,18 @@ func _check_upgrade_exclusive() -> void:
 	_assert(e2.choose_upgrade(CombatEngineScript.UPGRADE_AMMO_EFF), "pick ammo eff")
 	_assert(is_equal_approx(e2.ammo_cost(), Bal.AMMO_PER_SHOT * Bal.UPGRADE1_AMMO_COST_MULT), "ammo cost reduced")
 	_assert(e2.magazine() > Bal.BASE_AMMO, "mag bonus on ammo path")
+	_assert(is_equal_approx(e2.magazine(), Bal.BASE_AMMO + Bal.UPGRADE1_AMMO_MAG_BONUS), "mag bonus equals Balance")
+
+	var short := CombatEngineScript.new()
+	short.start_run(0, false)
+	short.scrap = Bal.UPGRADE1_SCRAP_COST - 1
+	_assert(short.scrap_is_short(), "scrap short below upgrade cost")
+	_assert(not short.can_afford_upgrade(), "cannot afford below cost")
+	short.scrap = Bal.UPGRADE1_SCRAP_COST
+	_assert(not short.scrap_is_short(), "scrap not short at upgrade cost")
+	short.upgrade_bought = true
+	short.scrap = 0
+	_assert(not short.scrap_is_short(), "scrap not short after upgrade bought")
 
 
 func _check_shield() -> void:
@@ -179,8 +204,19 @@ func _check_p0_art() -> void:
 		_assert(ResourceLoader.exists(path), "texture import %s" % path)
 	_assert(P0Art.upgrade_blink() != null, "upgrade blink atlas")
 	_assert(P0Art.boost_card() != null, "이번만 card atlas")
+	_assert(P0Art.BOOST_REGION.position.y + P0Art.BOOST_REGION.size.y <= P0Art.BOOST_GOLD_STATS_Y, "이번만 P0 crop hides gold stats")
 	_assert(P0Art.goal_card() != null, "goal card atlas")
 	_assert(P0Art.fx_kill() != null and P0Art.fx_scrap() != null, "kill/scrap FX atlas")
+	_assert(P0Art.upgrade_blink() is AtlasTexture, "P0 1280 sheet uses atlas crop")
+	_assert(P0Art.boost_card() is AtlasTexture, "P0 이번만 sheet uses gold-hiding crop")
+	_assert(P0Art.ALL_PATHS.has(P0Art.UPGRADE_BLINK), "swap hook ui upgrade")
+	_assert(P0Art.ALL_PATHS.has(P0Art.BOOST_ONCE), "swap hook ui boost")
+	_assert(P0Art.ALL_PATHS.has(P0Art.GOAL_EXIT), "swap hook ui goal")
+	_assert(P0Art.ALL_PATHS.has(P0Art.ENEMIES_SHEET), "swap hook enemies")
+	_assert(P0Art.ALL_PATHS.has(P0Art.FX_KILL_SCRAP), "swap hook fx")
+	_assert(P0Art.DIR_UI == "res://art/ui" and P0Art.DIR_ENEMIES == "res://art/enemies" and P0Art.DIR_FX == "res://art/fx", "swap dirs")
+	var tight := ImageTexture.create_from_image(Image.create(64, 48, false, Image.FORMAT_RGBA8))
+	_assert(not P0Art.is_p0_sheet(tight), "#12 tight PNG skips P0 atlas crop")
 	_assert(P0Art.enemy_region("grunt", 1) == P0Art.Z2, "grunt cycles Z1–Z3")
 	_assert(P0Art.enemy_region("runner", 0) == P0Art.Z5, "runner is Z5")
 	_assert(P0Art.enemy_region("brute", 0) == P0Art.Z6, "brute is Z6")

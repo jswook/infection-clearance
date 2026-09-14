@@ -158,6 +158,10 @@ func can_afford_upgrade() -> bool:
 	return not upgrade_bought and scrap >= Bal.UPGRADE1_SCRAP_COST
 
 
+func scrap_is_short() -> bool:
+	return not upgrade_bought and scrap < Bal.UPGRADE1_SCRAP_COST
+
+
 func damage() -> float:
 	return Bal.shot_damage(upgrade_kind, ibeonman)
 

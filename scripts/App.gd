@@ -64,7 +64,6 @@ func _process(delta: float) -> void:
 		lab_toast.modulate.a = clampf(toast_t / 0.25, 0.0, 1.0) if toast_t < 0.25 else 1.0
 	if shortage_t > 0.0:
 		shortage_t = maxf(0.0, shortage_t - delta)
-		lab_scrap.modulate = Color(1.0, 0.35, 0.35).lerp(Color.WHITE, 1.0 - shortage_t)
 	if screen == "mission":
 		if not overlay.visible:
 			engine.process(delta)
@@ -377,15 +376,15 @@ func _build_overlay() -> void:
 	choice_box.visible = false
 	overlay_box.add_child(choice_box)
 
-	var fire := _button("화력  —  공격력 ×%.2f" % Balance.UPGRADE1_FIREPOWER_MULT, 20)
+	var fire := _button(Balance.firepower_choice_copy(), 20)
 	fire.pressed.connect(func() -> void: _pick(CombatEngineScript.UPGRADE_FIREPOWER))
 	choice_box.add_child(fire)
 
-	var ammo := _button("탄약효율  —  탄소모 ×%.2f · 탄창 +%.0f" % [Balance.UPGRADE1_AMMO_COST_MULT, Balance.UPGRADE1_AMMO_MAG_BONUS], 20)
+	var ammo := _button(Balance.ammo_eff_choice_copy(), 20)
 	ammo.pressed.connect(func() -> void: _pick(CombatEngineScript.UPGRADE_AMMO_EFF))
 	choice_box.add_child(ammo)
 
-	var only := _label("하나만 선택한다. 선택 후 자동 사격이 해금된다.", 14, Color(0.55, 0.6, 0.64))
+	var only := _label(Balance.armory_auto_hint(), 14, Color(0.55, 0.6, 0.64))
 	only.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	choice_box.add_child(only)
 
@@ -432,8 +431,7 @@ func _sync_hud() -> void:
 	var reload := "  재장전" if engine.reload_left > 0.0 else ""
 	lab_ammo.text = "탄약  %.1f / %.0f%s" % [engine.player.ammo, engine.magazine(), reload]
 	lab_scrap.text = "스크랩  %d" % engine.scrap
-	if shortage_t <= 0.0:
-		lab_scrap.modulate = Color.WHITE
+	_tint_scrap()
 	lab_stats.text = "화력 %.1f   탄소모 %.2f" % [engine.damage(), engine.ammo_cost()]
 	btn_upgrade.disabled = engine.upgrade_bought
 	if engine.upgrade_bought:
@@ -451,6 +449,19 @@ func _sync_hud() -> void:
 	else:
 		btn_auto.disabled = true
 		btn_auto.text = "자동 잠김"
+
+
+func _tint_scrap() -> void:
+	# 적색 틴트는 스크랩 < 업글 비용일 때만. 구매 가능·구매 후에는 흰색.
+	if lab_scrap == null:
+		return
+	if engine == null or not engine.scrap_is_short():
+		lab_scrap.modulate = Color.WHITE
+		return
+	if shortage_t > 0.0:
+		lab_scrap.modulate = Color(1.0, 0.35, 0.35).lerp(Color.WHITE, 1.0 - shortage_t)
+	else:
+		lab_scrap.modulate = Color.WHITE
 
 
 func _blink_upgrade_only() -> void:
@@ -506,7 +517,7 @@ func _show_goal_card() -> void:
 	overlay_secondary.visible = false
 	_show_overlay_art(P0Art.goal_card(), Vector2(520, 220))
 	overlay_title.text = "작전 목표"
-	overlay_body.text = "S1 %s\n로비 → 복도 → 무기고 → 주차장 → 비상구 B1\n한 걸음에 보스로 갈 수 없다.\n목표: %s" % [Balance.ZONE_NAME, Balance.FINAL_GOAL]
+	overlay_body.text = "S1 %s\n로비 → 복도 → 무기고 → 주차장 → 비상구 B1\n한 걸음에 보스로 갈 수 없다.\n목표: %s\n확인하면 자동 사격이 해금된다." % [Balance.ZONE_NAME, Balance.FINAL_GOAL]
 
 
 func _toggle_auto() -> void:
@@ -542,7 +553,7 @@ func _on_fail() -> void:
 	overlay_title.text = "작전 실패"
 	if MetaSave.ibeonman_available:
 		_show_overlay_art(P0Art.boost_card(), Vector2(520, 260))
-		overlay_body.text = "첫 실패. 「이번만」 긴급 보급 카드를 1회 사용할 수 있다."
+		overlay_body.text = "첫 실패. 「이번만」 긴급 보급 카드를 1회 사용할 수 있다.\n%s" % Balance.ibeonman_supply_copy()
 		overlay_primary.visible = true
 		overlay_primary.text = "「이번만」"
 		overlay_secondary.visible = true
