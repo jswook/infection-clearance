@@ -1,6 +1,13 @@
 class_name P0Art
 extends RefCounted
 ## P0 플레이스홀더 경로·아틀라스. 전투 수치와 무관하다.
+## #12 실에셋 드롭인: 같은 파일명으로 art/ui, art/enemies, art/fx 에 덮어쓴다.
+## UI 카드가 P0 1280×720 시트가 아니면 아틀라스 크롭 없이 전체 Texture2D를 쓴다.
+
+const P0_SHEET := Vector2i(1280, 720)
+const DIR_UI := "res://art/ui"
+const DIR_ENEMIES := "res://art/enemies"
+const DIR_FX := "res://art/fx"
 
 const UPGRADE_BLINK := "res://art/ui/ui_upgrade_blink.png"
 const BOOST_ONCE := "res://art/ui/ui_boost_once.png"
@@ -9,7 +16,9 @@ const ENEMIES_SHEET := "res://art/enemies/enemies_z1_b1.png"
 const FX_KILL_SCRAP := "res://art/fx/fx_kill_scrap.png"
 
 const UPGRADE_REGION := Rect2(280, 48, 720, 560)
-const BOOST_REGION := Rect2(79, 40, 1141, 649)
+## P0 「이번만」 시트 하단 골드획득 줄을 잘라 제목+보급 안내만 남긴다. #12 타이트 PNG는 전체 사용.
+const BOOST_REGION := Rect2(79, 40, 1141, 350)
+const BOOST_GOLD_STATS_Y := 405.0
 const GOAL_REGION := Rect2(120, 90, 1040, 520)
 
 const FX_KILL_REGION := Rect2(100, 80, 450, 520)
@@ -50,16 +59,30 @@ static func atlas(path: String, region: Rect2) -> AtlasTexture:
 	return at
 
 
+static func is_p0_sheet(src: Texture2D) -> bool:
+	return src != null and src.get_width() == P0_SHEET.x and src.get_height() == P0_SHEET.y
+
+
+## UI 카드 드롭인. P0 1280×720 시트만 아틀라스 크롭. #12 타이트 PNG는 전체 텍스처.
+static func ui_texture(path: String, region: Rect2) -> Texture2D:
+	var src := tex(path)
+	if src == null:
+		return null
+	if not is_p0_sheet(src):
+		return src
+	return atlas(path, region)
+
+
 static func upgrade_blink() -> Texture2D:
-	return atlas(UPGRADE_BLINK, UPGRADE_REGION)
+	return ui_texture(UPGRADE_BLINK, UPGRADE_REGION)
 
 
 static func boost_card() -> Texture2D:
-	return atlas(BOOST_ONCE, BOOST_REGION)
+	return ui_texture(BOOST_ONCE, BOOST_REGION)
 
 
 static func goal_card() -> Texture2D:
-	return atlas(GOAL_EXIT, GOAL_REGION)
+	return ui_texture(GOAL_EXIT, GOAL_REGION)
 
 
 static func fx_kill() -> Texture2D:

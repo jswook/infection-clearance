@@ -62,18 +62,14 @@ S1 경찰서 지구 플레이테스트에서 감정·밸런스·과금 좌석을
 
 ## 밸런스 수치
 
-S1 적·업글 상수는 `autoload/Balance.gd`를 단일 출처로 한다.
+S1 적·업글 상수는 `autoload/Balance.gd`를 단일 출처로 한다. 탄약효율 UI는 `Balance.ammo_eff_choice_copy()` (`UPGRADE1_AMMO_COST_MULT` ×0.45, `UPGRADE1_AMMO_MAG_BONUS` +8).
 
-**develop에는 아직 머지되지 않았다.** 수치는 `feat/core-loop`의 `autoload/Balance.gd`를 본다 (draft PR #4).
-
-판정에 쓰는 상수 (feat/core-loop 기준):
+판정에 쓰는 상수 (`autoload/Balance.gd`):
 
 | 게이트 | 상수 |
 | --- | --- |
-| A3 「이번만」 | `IBEONMAN_DAMAGE_MULT`, `IBEONMAN_HP_BONUS`, `IBEONMAN_AMMO_BONUS` |
+| A3 「이번만」 | `IBEONMAN_DAMAGE_MULT`, `IBEONMAN_HP_BONUS`, `IBEONMAN_AMMO_BONUS` — 카피 `ibeonman_supply_copy()` (보급, 골드 아님) |
 | B5 O1 | `O1_FIRST_KILL_MIN_SEC` / `O1_FIRST_KILL_MAX_SEC` (1–5초) |
-| B6 비율 성장 | `UPGRADE1_FIREPOWER_MULT`, `UPGRADE1_AMMO_COST_MULT`, `ENEMY.*.hp` |
+| B6 비율 성장 | `UPGRADE1_FIREPOWER_MULT`, `UPGRADE1_AMMO_COST_MULT`, `UPGRADE1_AMMO_MAG_BONUS`, `ENEMY.*.hp` |
 | B9 B1 실드 | `B1_SHIELD_DAMAGE_TAKEN` (0.5), `B1_SHIELD_DISPLAY` |
 | 구역 | `ZONES` — 로비 → 복도 → 무기고 → 주차장 → 비상구 B1 |
-
-머지 후에는 develop의 `autoload/Balance.gd`를 따른다.
